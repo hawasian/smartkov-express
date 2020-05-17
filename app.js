@@ -8,12 +8,17 @@ const { body, validationResult } = require("express-validator/check");
 const { sanitizeBody } = require("express-validator/filter");
 const Twitter = require("twitter");
 //const config = require("./config.js");
-const config = require("./config.js") || {
-  consumer_key: process.env.consumer_key,
-  consumer_secret: process.env.consumer_secret,
-  access_token_key: process.env.access_token_key,
-  access_token_secret: process.env.access_token_secret,
-};
+let config;
+try {
+  config = require("./config.js");
+} catch (e) {
+  config = {
+    consumer_key: process.env.consumer_key,
+    consumer_secret: process.env.consumer_secret,
+    access_token_key: process.env.access_token_key,
+    access_token_secret: process.env.access_token_secret,
+  };
+}
 const app = express(); // Instantiate express to app var
 const port = process.env.PORT || 4242;
 const T = new Twitter(config);
