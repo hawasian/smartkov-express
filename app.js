@@ -15,6 +15,6 @@ app.get("/", (req, res) => {
   });
 });
 
-const server = app.listen(4242, () => {
+const server = app.listen(port, () => {
   console.log(`app is running on port ${server.address().port} ....`);
 });
