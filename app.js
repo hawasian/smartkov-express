@@ -23,7 +23,7 @@ const app = express(); // Instantiate express to app var
 const port = process.env.PORT || 4242;
 const T = new Twitter(config);
 
-const CORPUS_SIZE = 10;
+const CORPUS_SIZE = 20;
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -53,11 +53,10 @@ app.post("/api/submit_user", (req, res) => {
   const options = {
     screen_name: `@${req.body.uname}`,
     tweet_mode: "extended",
-    count: 5,
+    count: 10,
   };
   let corpus = [];
   let tweetlist = [];
-  let total_words = 0;
   const callback = (err, data) => {
     if (!err) {
       data.forEach((tweet) => {
@@ -74,21 +73,25 @@ app.post("/api/submit_user", (req, res) => {
             if (words[i].length < 1) {
               continue;
             }
-            words[i] = encodeURI(words[i]);
-            total_words += 1;
             if (corpus[words[i]]) {
-              corpus[words[i]].count += 1;
+              corpus[words[i]].Count += 1;
               if (corpus[words[i]][words[i + 1]]) {
-                corpus[words[i]][words[i + 1]].count += 1;
+                corpus[words[i]][words[i + 1]].Count += 1;
               } else {
-                corpus[words[i]][words[i + 1]] = { count: 1 };
+                corpus[words[i]][words[i + 1]] = {
+                  Count: 1,
+                  Word: String(words[i + 1]),
+                };
               }
             } else {
-              corpus[words[i]] = { count: 1 };
+              corpus[words[i]] = { Count: 1, Value: String(words[i]) };
               if (corpus[words[i]][words[i + 1]]) {
-                corpus[words[i]][words[i + 1]].count += 1;
+                corpus[words[i]][words[i + 1]].Count += 1;
               } else {
-                corpus[words[i]][words[i + 1]] = { count: 1 };
+                corpus[words[i]][words[i + 1]] = {
+                  Count: 1,
+                  Value: String(words[i + 1]),
+                };
               }
             }
           }
@@ -100,6 +103,12 @@ app.post("/api/submit_user", (req, res) => {
         getStatus();
       } else {
         req.session.tweets = tweetlist;
+        let output = [];
+        let starter = Math.floor(Math.random() * Object.keys(corpus).length);
+        let x = Object.keys(corpus)[starter];
+        output.push(x);
+        starter = Math.floor(Math.random() * corpus[x].Count);
+        let y = Object.keys(corpus[x]);
         console.log(corpus);
         res.redirect("/");
       }
