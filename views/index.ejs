@@ -18,12 +18,20 @@
   </head>
   <body id="page-top">
     <div class="container">
-      <h1>Hello <%= uname %></h1>
-      <form action="/submit_user" method="post">
+      <h1><%= uname %></h1>
+      <form action="/api/submit_user" method="post">
         <label for="team_name">Enter name: </label>
         <input id="team_name" type="text" name="uname" />
         <input type="submit" value="OK" />
       </form>
+      <%if (tweets) { %>
+      <h2>Tweets</h2>
+      <ul>
+        <% for(let i=0; i<tweets.length; i++) { %>
+          <li><%= tweets[i] %></li>
+        <% } %>
+      </ul>
+      <% } %>
     </div>
     <!-- JS -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
