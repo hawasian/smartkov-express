@@ -23,6 +23,8 @@ const app = express(); // Instantiate express to app var
 const port = process.env.PORT || 4242;
 const T = new Twitter(config);
 
+const CORPUS_SIZE = 10;
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(session({ secret: "Shh, its a secret!" }));
@@ -35,7 +37,6 @@ app.get("/", (req, res) => {
       title: "index",
       uname: req.session.uname || "Welcome",
       tweets: req.session.tweets,
-      temp: req.session.temp,
     });
   } else {
     res.render("index", {
@@ -52,25 +53,72 @@ app.post("/api/submit_user", (req, res) => {
   const options = {
     screen_name: `@${req.body.uname}`,
     tweet_mode: "extended",
-    count: 2,
+    count: 5,
   };
+  let corpus = [];
   let tweetlist = [];
+  let total_words = 0;
   const callback = (err, data) => {
     if (!err) {
-      //console.log(data);
       data.forEach((tweet) => {
         if (!tweet.retweeted_status) {
-          tweetlist.push(tweet.full_text);
-          console.log(tweet);
+          const tweetRaw = tweet.full_text;
+          let newTweet = tweetRaw.split("http")[0].trim();
+          newTweet = newTweet.replace(
+            /[^abcdefghijklmnopqrstuvwxyz1234567890\'\s\@\#]/gi,
+            ""
+          );
+          newTweet = newTweet.toLowerCase();
+          const words = newTweet.split(" ");
+          for (let i = 0; i < words.length - 1; i++) {
+            if (words[i].length < 1) {
+              continue;
+            }
+            words[i] = encodeURI(words[i]);
+            total_words += 1;
+            if (corpus[words[i]]) {
+              corpus[words[i]].count += 1;
+              if (corpus[words[i]][words[i + 1]]) {
+                corpus[words[i]][words[i + 1]].count += 1;
+              } else {
+                corpus[words[i]][words[i + 1]] = { count: 1 };
+              }
+            } else {
+              corpus[words[i]] = { count: 1 };
+              if (corpus[words[i]][words[i + 1]]) {
+                corpus[words[i]][words[i + 1]].count += 1;
+              } else {
+                corpus[words[i]][words[i + 1]] = { count: 1 };
+              }
+            }
+          }
+          tweetlist.push(newTweet);
         }
+        options.max_id = tweet.id;
       });
-      req.session.tweets = tweetlist;
-      res.redirect("/");
+      if (tweetlist.length < CORPUS_SIZE) {
+        getStatus();
+      } else {
+        req.session.tweets = tweetlist;
+        console.log(corpus);
+        res.redirect("/");
+      }
     } else {
       console.log(err);
     }
   };
-  T.get("statuses/user_timeline", options, callback);
+  const getStatus = () => {
+    T.get("statuses/user_timeline", options, callback);
+  };
+  T.get("users/show", { screen_name: req.body.uname }, (err, data) => {
+    req.session.tweets = null;
+    if (!err) {
+      getStatus();
+    } else {
+      console.log(err);
+      res.redirect("/");
+    }
+  });
 });
 
 const server = app.listen(port, () => {
