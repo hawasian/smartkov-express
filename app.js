@@ -33,11 +33,13 @@ app.set("view engine", "ejs");
 
 app.get("/", (req, res) => {
   if (req.session.tweets) {
+    makeTweet(req.session.firstWord, req.session.corpus, 4);
     res.render("index", {
       title: "index",
       uname: req.session.uname || "Welcome",
       tweets: req.session.tweets,
       corpus: req.session.corpus,
+      firstWord: req.session.firstWord,
     });
   } else {
     res.render("index", {
@@ -57,6 +59,7 @@ app.post("/api/submit_user", (req, res) => {
     count: 10,
   };
   let corpus = { Count: 0 };
+  let firstWord = { Count: 0 };
   let tweetlist = [];
 
   const callback = (err, data) => {
@@ -71,6 +74,14 @@ app.post("/api/submit_user", (req, res) => {
           );
           newTweet = newTweet.toLowerCase();
           const words = newTweet.split(" ");
+
+          firstWord.Count += 1;
+          if (firstWord[words[0]]) {
+            firstWord[words[0]].Count += 1;
+          } else {
+            firstWord[words[0]] = { Count: 1 };
+          }
+
           for (let i = 0; i < words.length - 1; i++) {
             if (words[i].length < 1) {
               continue;
@@ -102,46 +113,22 @@ app.post("/api/submit_user", (req, res) => {
         }
         options.max_id = tweet.id;
       });
+
       if (tweetlist.length < CORPUS_SIZE) {
         getStatus();
       } else {
         let output = [];
         req.session.corpus = corpus;
+        req.session.firstWord = firstWord;
         req.session.tweets = tweetlist;
-        makeTweet(corpus, 1);
+        //makeTweet(firstWord, corpus, 4);
         res.redirect("/");
       }
     } else {
       console.log(err);
     }
   };
-  const getWord = (input) => {
-    let selector = Math.floor(Math.random() * input.Count);
-    if (Object.entries(input).length < 3) {
-      return false;
-    }
-    for (let [key, value] of Object.entries(input)) {
-      if (key != "Count" && key != "Value") {
-        selector -= value.Count;
-        if (selector < 0) {
-          return key;
-        }
-      }
-    }
-  };
-  const makeTweet = (src, length) => {
-    let output = [];
-    output.push(getWord(src));
-    for (let i = 0; i < 5; i++) {
-      const nextWord = getWord(src[output[output.length - 1]]);
-      if (nextWord) {
-        output.push(nextWord);
-      } else {
-        break;
-      }
-    }
-    console.log(output);
-  };
+
   const getStatus = () => {
     T.get("statuses/user_timeline", options, callback);
   };
@@ -155,7 +142,37 @@ app.post("/api/submit_user", (req, res) => {
     }
   });
 });
-
+const getWord = (input) => {
+  try {
+    if (Object.entries(input).length < 3) {
+      return false;
+    }
+  } catch {
+    return false;
+  }
+  let selector = Math.floor(Math.random() * input.Count);
+  for (let [key, value] of Object.entries(input)) {
+    if (key != "Count" && key != "Value") {
+      selector -= value.Count;
+      if (selector < 0) {
+        return key;
+      }
+    }
+  }
+};
+const makeTweet = (first, src, length) => {
+  let output = [];
+  output.push(getWord(first));
+  for (let i = 0; i < length; i++) {
+    const nextWord = getWord(src[output[output.length - 1]]);
+    if (nextWord) {
+      output.push(nextWord);
+    } else {
+      break;
+    }
+  }
+  console.log(output);
+};
 const server = app.listen(port, () => {
   console.log(`app is running on port ${server.address().port} ....`);
 });
