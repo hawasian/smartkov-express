@@ -37,6 +37,7 @@ app.get("/", (req, res) => {
       title: "index",
       uname: req.session.uname || "Welcome",
       tweets: req.session.tweets,
+      corpus: req.session.corpus,
     });
   } else {
     res.render("index", {
@@ -55,8 +56,9 @@ app.post("/api/submit_user", (req, res) => {
     tweet_mode: "extended",
     count: 10,
   };
-  let corpus = [];
+  let corpus = { Count: 0 };
   let tweetlist = [];
+
   const callback = (err, data) => {
     if (!err) {
       data.forEach((tweet) => {
@@ -73,6 +75,7 @@ app.post("/api/submit_user", (req, res) => {
             if (words[i].length < 1) {
               continue;
             }
+            corpus.Count += 1;
             if (corpus[words[i]]) {
               corpus[words[i]].Count += 1;
               if (corpus[words[i]][words[i + 1]]) {
@@ -102,19 +105,42 @@ app.post("/api/submit_user", (req, res) => {
       if (tweetlist.length < CORPUS_SIZE) {
         getStatus();
       } else {
-        req.session.tweets = tweetlist;
         let output = [];
-        let starter = Math.floor(Math.random() * Object.keys(corpus).length);
-        let x = Object.keys(corpus)[starter];
-        output.push(x);
-        starter = Math.floor(Math.random() * corpus[x].Count);
-        let y = Object.keys(corpus[x]);
-        console.log(corpus);
+        req.session.corpus = corpus;
+        req.session.tweets = tweetlist;
+        makeTweet(corpus, 1);
         res.redirect("/");
       }
     } else {
       console.log(err);
     }
+  };
+  const getWord = (input) => {
+    let selector = Math.floor(Math.random() * input.Count);
+    if (Object.entries(input).length < 3) {
+      return false;
+    }
+    for (let [key, value] of Object.entries(input)) {
+      if (key != "Count" && key != "Value") {
+        selector -= value.Count;
+        if (selector < 0) {
+          return key;
+        }
+      }
+    }
+  };
+  const makeTweet = (src, length) => {
+    let output = [];
+    output.push(getWord(src));
+    for (let i = 0; i < 5; i++) {
+      const nextWord = getWord(src[output[output.length - 1]]);
+      if (nextWord) {
+        output.push(nextWord);
+      } else {
+        break;
+      }
+    }
+    console.log(output);
   };
   const getStatus = () => {
     T.get("statuses/user_timeline", options, callback);
