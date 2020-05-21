@@ -23,7 +23,7 @@ const app = express(); // Instantiate express to app var
 const port = process.env.PORT || 4242;
 const T = new Twitter(config);
 
-const CORPUS_SIZE = 20;
+const CORPUS_SIZE = 500;
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: false }));
@@ -33,7 +33,7 @@ app.set("view engine", "ejs");
 
 app.get("/", (req, res) => {
   if (req.session.tweets) {
-    makeTweet(req.session.firstWord, req.session.corpus, 4);
+    console.log(makeTweet(req.session.firstWord, req.session.corpus, 30));
     res.render("index", {
       title: "index",
       uname: req.session.uname || "Welcome",
@@ -52,19 +52,26 @@ app.get("/", (req, res) => {
 
 app.post("/api/submit_user", (req, res) => {
   req.session.uname = req.body.uname;
-
+  const MAX_CALLS = 20;
+  let calls = 0;
   const options = {
     screen_name: `@${req.body.uname}`,
     tweet_mode: "extended",
-    count: 10,
+    count: 200,
   };
   let corpus = { Count: 0 };
   let firstWord = { Count: 0 };
   let tweetlist = [];
 
   const callback = (err, data) => {
+    calls++;
     if (!err) {
+      // console.log(data.length);
+      //   if (data.length < 5) {
+      //     console.log(data);
+      //   }
       data.forEach((tweet) => {
+        //    console.log(tweet.full_text);
         if (!tweet.retweeted_status) {
           const tweetRaw = tweet.full_text;
           let newTweet = tweetRaw.split("http")[0].trim();
@@ -114,7 +121,7 @@ app.post("/api/submit_user", (req, res) => {
         options.max_id = tweet.id;
       });
 
-      if (tweetlist.length < CORPUS_SIZE) {
+      if (tweetlist.length < CORPUS_SIZE && calls <= MAX_CALLS) {
         getStatus();
       } else {
         let output = [];
@@ -122,6 +129,7 @@ app.post("/api/submit_user", (req, res) => {
         req.session.firstWord = firstWord;
         req.session.tweets = tweetlist;
         //makeTweet(firstWord, corpus, 4);
+        console.log(calls);
         res.redirect("/");
       }
     } else {
@@ -142,9 +150,28 @@ app.post("/api/submit_user", (req, res) => {
     }
   });
 });
+
+app.get("/api/new_tweet", (req, res) => {
+  if (req.session.tweets) {
+    console.log(makeTweet(req.session.firstWord, req.session.corpus, 30));
+    res.render("index", {
+      title: "index",
+      uname: req.session.uname || "Welcome",
+      tweets: req.session.tweets,
+      corpus: req.session.corpus,
+      firstWord: req.session.firstWord,
+    });
+  } else {
+    res.render("index", {
+      title: "index",
+      uname: req.session.uname || "Welcome",
+      tweets: null,
+    });
+  }
+});
 const getWord = (input) => {
   try {
-    if (Object.entries(input).length < 3) {
+    if (Object.entries(input).length < 2) {
       return false;
     }
   } catch {
@@ -171,7 +198,7 @@ const makeTweet = (first, src, length) => {
       break;
     }
   }
-  console.log(output);
+  return output;
 };
 const server = app.listen(port, () => {
   console.log(`app is running on port ${server.address().port} ....`);
