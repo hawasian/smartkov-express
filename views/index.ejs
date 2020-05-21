@@ -25,7 +25,12 @@
         <input type="submit" value="OK" />
       </form>
       <%if (tweets) { %>
-      <a href="/api/new_tweet">New Tweet</a>
+      <h2>Tweets</h2>
+      <ul>
+        <% for(let i=0; i<tweets.length; i++) { %>
+          <li><%= tweets[i] %></li>
+        <% } %>
+      </ul>
       <% } %>
     </div>
     <!-- JS -->
