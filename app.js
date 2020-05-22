@@ -33,7 +33,6 @@ app.set("view engine", "ejs");
 
 app.get("/", (req, res) => {
   if (req.session.tweets) {
-    makeTweet(req.session.firstWord, req.session.corpus, 4);
     res.render("index", {
       title: "index",
       uname: req.session.uname || "Welcome",
@@ -48,6 +47,24 @@ app.get("/", (req, res) => {
       tweets: null,
     });
   }
+});
+
+app.get("/api/make_tweet", (req, res) => {
+  let output = {};
+  let len = req.query.length;
+  if (!req.query.length || req.query.length <= 0) {
+    len = 5;
+  }
+  if (req.session.firstWord && req.session.corpus) {
+    output.tweet = makeTweet(
+      req.session.firstWord,
+      req.session.corpus,
+      len - 1
+    );
+  } else {
+    output.tweet = "SESSION DATA REQUIRED";
+  }
+  res.json(output);
 });
 
 app.post("/api/submit_user", (req, res) => {
@@ -117,12 +134,11 @@ app.post("/api/submit_user", (req, res) => {
       if (tweetlist.length < CORPUS_SIZE) {
         getStatus();
       } else {
-        let output = [];
+        let output = { "init-list": firstWord, "word-list": corpus };
         req.session.corpus = corpus;
         req.session.firstWord = firstWord;
         req.session.tweets = tweetlist;
-        //makeTweet(firstWord, corpus, 4);
-        res.redirect("/");
+        res.json(output);
       }
     } else {
       console.log(err);
@@ -142,6 +158,7 @@ app.post("/api/submit_user", (req, res) => {
     }
   });
 });
+
 const getWord = (input) => {
   try {
     if (Object.entries(input).length < 3) {
@@ -160,6 +177,7 @@ const getWord = (input) => {
     }
   }
 };
+
 const makeTweet = (first, src, length) => {
   let output = [];
   output.push(getWord(first));
@@ -172,7 +190,9 @@ const makeTweet = (first, src, length) => {
     }
   }
   console.log(output);
+  return output;
 };
+
 const server = app.listen(port, () => {
   console.log(`app is running on port ${server.address().port} ....`);
 });
