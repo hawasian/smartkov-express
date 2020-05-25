@@ -31,7 +31,7 @@ app.use(session({ secret: "Shh, its a secret!" }));
 
 app.set("view engine", "ejs");
 
-app.get("/", (req, res) => {
+app.get("/welcome", (req, res) => {
   if (req.session.tweets) {
     res.render("index", {
       title: "index",
