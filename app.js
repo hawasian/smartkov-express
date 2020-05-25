@@ -159,6 +159,9 @@ app.post("/api/submit_user", (req, res) => {
   });
 });
 
+app.post("/api/test_post", (req, res) => {
+  res.json("PASS");
+});
 const getWord = (input) => {
   try {
     if (Object.entries(input).length < 3) {
@@ -192,6 +195,10 @@ const makeTweet = (first, src, length) => {
   console.log(output);
   return output;
 };
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname + "/client/build/index.html"));
+});
 
 const server = app.listen(port, () => {
   console.log(`app is running on port ${server.address().port} ....`);
